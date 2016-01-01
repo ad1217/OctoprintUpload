@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 
-import requests
-import random
-import string
 from io import StringIO
+import requests
 
 from UM.Application import Application
 from UM.Preferences import Preferences
-from UM.Logger import Logger
 from UM.Mesh.MeshWriter import MeshWriter
 from UM.Job import Job
 from UM.Mesh.WriteMeshJob import WriteMeshJob
