@@ -20,19 +20,19 @@ class OctoprintUploadJob(WriteMeshJob):
 
     def run(self):
         Job.yieldThread()
-        if(self._writer.write(self._stream, self._node, self._mode)):
+        if self._writer.write(self._stream, self._node, self._mode):
             self._stream.seek(0)
-            gcode = self._stream
-            fileName = self._file_name
-            selectBool = str(Preferences.getInstance().getValue("octoprint/select")).lower()
-            printBool = str(Preferences.getInstance().getValue("octoprint/print")).lower()
-            r = requests.post(Preferences.getInstance().getValue("octoprint/base_url") + "api/files/local",
-                              files = {'file': (fileName, gcode),
-                                       'select': ('', selectBool),
-                                       'print': ('', printBool)},
-                              headers={'User-agent': 'Cura AutoUploader Plugin',
-                                       'X-Api-Key': Preferences.getInstance().getValue("octoprint/api_key")})
-            self.setResult(r)
+            select_bool = str(Preferences.getInstance().getValue("octoprint/select")).lower()
+            print_bool = str(Preferences.getInstance().getValue("octoprint/print")).lower()
+            url = Preferences.getInstance().getValue("octoprint/base_url") + "api/files/local"
+            api_key = Preferences.getInstance().getValue("octoprint/api_key")
+            result = requests.post(url,
+                                   files={'file': (self._file_name, self._stream),
+                                          'select': ('', select_bool),
+                                          'print': ('', print_bool)},
+                                   headers={'User-agent': 'Cura AutoUploader Plugin',
+                                            'X-Api-Key': api_key})
+            self.setResult(result)
         else:
             self.setResult(False)
 
@@ -64,7 +64,7 @@ class OctoprintUploadOutputDevice(OutputDevice):
 
         self._writing = False
 
-    def requestWrite(self, node, file_name = None):
+    def requestWrite(self, node, file_name=None):
         if self._writing:
             raise OutputDeviceError.DeviceBusyError()
 
