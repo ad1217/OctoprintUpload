@@ -9,11 +9,35 @@ from UM.Application import Application
 from UM.Preferences import Preferences
 from UM.Logger import Logger
 from UM.Mesh.MeshWriter import MeshWriter
+from UM.Job import Job
 from UM.Mesh.WriteMeshJob import WriteMeshJob
 from UM.OutputDevice.OutputDevicePlugin import OutputDevicePlugin
 from UM.OutputDevice.OutputDevice import OutputDevice
 from UM.OutputDevice import OutputDeviceError
 from UM.Message import Message
+
+##  Upload Job that wraps WriteMeshJob
+class OctoprintUploadJob(WriteMeshJob):
+    def __init__(self, writer, node):
+        super().__init__(writer, StringIO(), node, MeshWriter.OutputMode.TextMode)
+
+    def run(self):
+        Job.yieldThread()
+        if(self._writer.write(self._stream, self._node, self._mode)):
+            self._stream.seek(0)
+            gcode = self._stream
+            fileName = self._file_name
+            selectBool = str(Preferences.getInstance().getValue("octoprint/select")).lower()
+            printBool = str(Preferences.getInstance().getValue("octoprint/print")).lower()
+            r = requests.post(Preferences.getInstance().getValue("octoprint/base_url") + "api/files/local",
+                              files = {'file': (fileName, gcode),
+                                       'select': ('', selectBool),
+                                       'print': ('', printBool)},
+                              headers={'User-agent': 'Cura AutoUploader Plugin',
+                                       'X-Api-Key': Preferences.getInstance().getValue("octoprint/api_key")})
+            self.setResult(r)
+        else:
+            self.setResult(False)
 
 ##  Implements an OutputDevicePlugin that provides a single instance of OctoprintUploadOutputDevice
 class OctoprintUploadOutputDevicePlugin(OutputDevicePlugin):
@@ -33,7 +57,6 @@ class OctoprintUploadOutputDevicePlugin(OutputDevicePlugin):
 
 ##  Implements an OutputDevice that supports saving to arbitrary local files.
 class OctoprintUploadOutputDevice(OutputDevice):
-    stream = None
     def __init__(self):
         super().__init__("octoprint")
 
@@ -50,9 +73,8 @@ class OctoprintUploadOutputDevice(OutputDevice):
 
         self.writeStarted.emit(self)
         mesh_writer = Application.getInstance().getMeshFileHandler().getWriterByMimeType("text/x-gcode")
-        self.stream = StringIO()
 
-        job = WriteMeshJob(mesh_writer, self.stream, node, MeshWriter.OutputMode.TextMode)
+        job = OctoprintUploadJob(mesh_writer, node)
         job.setFileName(file_name + ".gcode")
         job.progress.connect(self._onJobProgress)
         job.finished.connect(self._onWriteJobFinished)
@@ -77,19 +99,6 @@ class OctoprintUploadOutputDevice(OutputDevice):
         self._writing = False
         self.writeFinished.emit(self)
         if job.getResult():
-            self.writeSuccess.emit(self)
-            self.stream.seek(0)
-            gcode = self.stream
-            fileName = job.getFileName()
-            selectBool = str(Preferences.getInstance().getValue("octoprint/select")).lower()
-            printBool = str(Preferences.getInstance().getValue("octoprint/print")).lower()
-            r = requests.post(Preferences.getInstance().getValue("octoprint/base_url") + "api/files/local",
-                              files = {'file': (fileName, gcode),
-                                       'select': ('', selectBool),
-                                       'print': ('', printBool)},
-                              headers={'User-agent': 'Cura AutoUploader Plugin',
-                                       'X-Api-Key': Preferences.getInstance().getValue("octoprint/api_key")})
-
             message = Message("Succesfully Uploaded {0}, Response Code {1}".format(job.getFileName(), r.status_code))
             message.show()
 
