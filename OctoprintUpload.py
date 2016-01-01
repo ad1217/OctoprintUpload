@@ -79,7 +79,7 @@ class OctoprintUploadOutputDevice(OutputDevice):
         job.progress.connect(self._onJobProgress)
         job.finished.connect(self._onWriteJobFinished)
 
-        message = Message("Uploading as {0}".format(file_name), 2)
+        message = Message("Uploading {0} to {1}".format(job.getFileName(), Preferences.getInstance().getValue("octoprint/base_url")), 0, progress=-1)
         message.show()
 
         job._message = message
@@ -99,11 +99,17 @@ class OctoprintUploadOutputDevice(OutputDevice):
         self._writing = False
         self.writeFinished.emit(self)
         if job.getResult():
-            message = Message("Succesfully Uploaded {0}, Response Code {1}".format(job.getFileName(), r.status_code))
-            message.show()
+            if job.getResult().status_code == 201:
+                self.writeSuccess.emit(self)
+                message = Message("Succesfully uploaded {0}\nResponse: {1} ({2})".format(job.getFileName(), job.getResult().reason, job.getResult().status_code))
+                message.show()
 
+            else:
+                self.writeError.emit(self)
+                message = Message("Failed to upload {0}\nResponse: {1} ({2})".format(job.getFileName(), job.getResult().reason, job.getResult().status_code))
+                message.show()
         else:
-            message = Message("Failed to upload {0}".format(job.getFileName()))
-            message.show()
             self.writeError.emit(self)
+            message = Message("Failed to write {0}".format(job.getFileName()))
+            message.show()
         job.getStream().close()
