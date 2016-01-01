@@ -55,7 +55,7 @@ class OctoprintUploadOutputDevicePlugin(OutputDevicePlugin):
     def stop(self):
         self.getOutputDeviceManager().removeOutputDevice("octoprint")
 
-##  Implements an OutputDevice that supports saving to arbitrary local files.
+##  Implements an OutputDevice that supports uploading to an OctoPrint Server.
 class OctoprintUploadOutputDevice(OutputDevice):
     def __init__(self):
         super().__init__("octoprint")
