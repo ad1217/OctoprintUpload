@@ -64,7 +64,7 @@ class OctoprintUploadOutputDevice(OutputDevice):
 
         self._writing = False
 
-    def requestWrite(self, node, file_name=None):
+    def requestWrite(self, node, file_name=None, filter_by_machine = False):
         if self._writing:
             raise OutputDeviceError.DeviceBusyError()
 
