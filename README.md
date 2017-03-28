@@ -1,3 +1,4 @@
+**Note: I haven't really been maintaining this plugin recently, and I think [FieldOfView's plugin](https://github.com/fieldofview/OctoPrintPlugin) is better in a number of ways. You may wish to use that instead.**
 # OctoPrint Upload #
 
 This is a plugin for Cura (> 15.06) that allows uploading to an Octoprint server.
